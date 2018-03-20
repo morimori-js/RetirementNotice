@@ -1,7 +1,5 @@
 window.onload = () => {
-
     enchant();
-
 
     /**
      * @param args
@@ -18,7 +16,6 @@ window.onload = () => {
             this.collisionData = args[3];
         }
     });
-
 
     /**
      * @param args
@@ -135,6 +132,7 @@ window.onload = () => {
             this.image = core.assets[args[3]];
             this.frame = args[4];
             this.turnFlag = 'right';
+            this.deadFlag = false;
 
             this.addEventListener('enterframe', function(e) {
 
@@ -235,10 +233,11 @@ window.onload = () => {
     const collisionJudgement = function(player, enemy, stage, core, scoreLabel, lifeLabel) {
         if (enemy.intersect(player)) {
             if (player.isJump) {
+                console.log('isNotJump : collision');
                 stage.removeChild(enemy);
                 player.y -= player.jumpHeight;
-                core.enemy = false;
-            } else {
+            } else if (core.collision > 9) {
+                console.log('isJump : collision');
                 player.blink(10, lifeLabel); // 衝突時にプライヤースプライト点滅
             }
         }
@@ -266,7 +265,7 @@ window.onload = () => {
     core.score = 0; // 開始時のスコア
     core.time = 0 // 開始時のタイム
     core.life = 3; // 開始時のライフ
-    core.enemy = false; // 敵生成可否フラグ
+    core.collision = 0; // 敵生成可否フラグ
 
     core.preload(CONSTANT.CORE_PRELOAD); // 画像ファイルのプリロード
 
@@ -296,20 +295,32 @@ window.onload = () => {
             if (!player.isJump) player.jump(); // 画面タッチでジャンプ
         });
 
+        let enemies = []; // 敵の配列
+
         /**
          * coreオブジェクトの毎フレームイベント
          */
         core.rootScene.addEventListener('enterframe', function(e) {
             // 敵生成
-            if (!core.enemy && Math.floor(Math.random() * 1000 < 5)) {
-                core.enemy = true;
+            if (Math.floor(Math.random() * 700 < 5)) {
                 enemy = new Enemy(CONSTANT.ENEMY, player, map);
-                stage.addChild(enemy);
+                enemies.push(enemy);
+                stage.addChild(enemies[(enemies.length - 1)]);
             }
 
-            if (core.enemy) {
-                collisionJudgement(player, enemy, stage, core, scoreLabel, lifeLabel); // 敵とプレイヤーの衝突判定
-                if (enemy.y >= map.height || enemy.x < core.width) stage.removeChild(enemy);　// 敵の落下判定
+            // 衝突の遅延
+            if (core.collision < 10) {
+                core.collision++;
+            } 
+
+            for (let i = 0; i < enemies.length; i++) {
+                if (!enemies[i].deadFlag) {
+                    collisionJudgement(player, enemies[i], stage, core, scoreLabel, lifeLabel); // 敵とプレイヤーの衝突判定
+
+                    if (enemies[i].y >= map.height || enemies[i].x < (core.x - enemies[i].width)) {
+                        stage.removeChild(enemies[i]);　// 敵の落下判定
+                    }
+                }
             }
 
             // 画面のスクロール
